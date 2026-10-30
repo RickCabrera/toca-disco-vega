@@ -65,7 +65,9 @@ jobs:
       - name: Compilar (armv7, release)
         run: |
           [ -f "$HOME/vega/env" ] && source "$HOME/vega/env"
-          npm run build:release
+          # Amazon rechaza un .vpkg con build number 0: usamos el número de corrida (1, 2, 3…),
+          # que siempre sube.
+          npm run build:release -- --build-number "${{ github.run_number }}"
 
       - name: Juntar los paquetes
         run: |
