@@ -1,0 +1,97 @@
+# Toca Disco para Fire TV con Vega OS (no es Android: el APK no se instala ahí).
+# schema-version es el formato del manifest, no la versión de la app.
+schema-version = 1
+
+[package]
+title = "Toca Disco"
+version = "1.0.0"
+id = "mx.tocadisco.vega"
+icon = "@image/app_icon.png"
+
+# El SDK no compila sin esta sección. 1.2 es la versión de Vega OS de los Fire Stick actuales.
+[os.version]
+min = "1.2"
+target = "1.2"
+
+[components]
+
+[[components.interactive]]
+id = "mx.tocadisco.vega.main"
+runtime-module = "/com.amazon.kepler.keplerscript.runtime.loader_2@IKeplerScript_2_0"
+launch-type = "singleton"
+categories = ["com.amazon.category.main"]
+# permanent: el sistema no manda la app a segundo plano ni pone el protector de pantalla
+# mientras está abierta. timeout-secs: cuánto aguanta sin que nadie toque el control (24 h).
+lifespan = "permanent"
+timeout-secs = 86400
+
+[processes]
+
+[[processes.group]]
+component-ids = ["mx.tocadisco.vega.main"]
+
+# wants y no needs: si a un equipo le falta alguno, la app se instala igual.
+# Son los que encienden el video, el audio y el teclado dentro del WebView.
+[wants]
+
+[[wants.service]]
+id = "com.amazon.inputmethod.service"
+
+[[wants.service]]
+id = "com.amazon.inputd.service"
+
+[[wants.service]]
+id = "com.amazon.webview.renderer_service"
+
+[[wants.service]]
+id = "com.amazon.media.server"
+
+[[wants.service]]
+id = "com.amazon.mediametrics.service"
+
+[[wants.service]]
+id = "com.amazon.mediabuffer.service"
+
+[[wants.service]]
+id = "com.amazon.mediatransform.service"
+
+[[wants.service]]
+id = "com.amazon.media.playersession.service"
+
+[[wants.service]]
+id = "com.amazon.audio.stream"
+
+[[wants.service]]
+id = "com.amazon.audio.control"
+
+[[wants.service]]
+id = "com.amazon.audio.system"
+
+[[wants.service]]
+id = "com.amazon.network.service"
+
+[[wants.service]]
+id = "com.amazon.kepler.ucc.publisher"
+
+# Group-IPC, lo piden los servicios de media. Va en los dos lados (wants y offers).
+[[wants.service]]
+id = "com.amazon.gipc.uuid.*"
+
+# YouTube usa EME. Opcionales para no bloquear la instalación.
+[[wants.service]]
+id = "com.amazon.drm.key"
+
+[[wants.service]]
+id = "com.amazon.drm.crypto"
+
+[[wants.privilege]]
+id = "com.amazon.privilege.security.file-sharing"
+
+[offers]
+
+[[offers.service]]
+id = "com.amazon.gipc.uuid.*"
+
+[needs]
+[[needs.module]]
+id = "/com.amazon.vega.os@IVega_1_2"

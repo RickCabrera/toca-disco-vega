@@ -1,0 +1,81 @@
+name: App de Vega OS
+
+# Compila el paquete .vpkg de la app para Fire TV con Vega OS (Fire TV Stick 4K Select y
+# Fire TV Stick HD 2026) y lo deja como artefacto descargable. Se puede lanzar a mano desde
+# la pestaña «Actions». Ver README.md.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      tv_url:
+        description: "Dirección de /tv que abre la app (vacío = la de src/config.ts)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  vpkg:
+    name: Paquete .vpkg
+    runs-on: ubuntu-22.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Instalar el SDK de Vega
+        env:
+          NONINTERACTIVE: "true"
+          SKIP_VVD_INSTALL: "true"
+        run: |
+          curl -fsSL https://sdk-installer.vega.labcollab.net/get_vvm.sh | bash
+          # El instalador deja sus variables en ~/vega/env.
+          if [ -f "$HOME/vega/env" ]; then
+            source "$HOME/vega/env"
+            env | grep -iE '^(PATH|VEGA|KEPLER)' >> "$GITHUB_ENV" || true
+          fi
+          echo "$HOME/vega/bin" >> "$GITHUB_PATH"
+
+      - name: Versión del SDK
+        run: |
+          [ -f "$HOME/vega/env" ] && source "$HOME/vega/env"
+          vega -v || true
+
+      - name: Cambiar la dirección de /tv
+        if: ${{ inputs.tv_url != '' }}
+        env:
+          TV_URL: ${{ inputs.tv_url }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const f = "src/config.ts";
+            const s = fs.readFileSync(f, "utf8").replace(/TV_URL = .*;/, "TV_URL = " + JSON.stringify(process.env.TV_URL) + ";");
+            fs.writeFileSync(f, s);
+          '
+          grep TV_URL src/config.ts
+
+      - name: Instalar dependencias
+        run: npm install --no-audit --no-fund
+
+      - name: Compilar (armv7, release)
+        run: |
+          [ -f "$HOME/vega/env" ] && source "$HOME/vega/env"
+          npm run build:release
+
+      - name: Juntar los paquetes
+        run: |
+          mkdir -p salida
+          find build -name '*.vpkg' -print -exec cp {} salida/ \;
+          ls -la salida
+          [ -n "$(ls salida/*.vpkg 2>/dev/null)" ]
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: toca-disco-vega
+          path: salida/*.vpkg
+          if-no-files-found: error
