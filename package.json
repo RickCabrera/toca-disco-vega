@@ -1,6 +1,6 @@
 {
   "name": "toca-disco-vega",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Toca Disco para Fire TV con Vega OS (Fire TV Stick 4K Select y Fire TV Stick HD 2026)",
   "scripts": {

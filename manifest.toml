@@ -4,7 +4,7 @@ schema-version = 1
 
 [package]
 title = "Toca Disco"
-version = "1.0.0"
+version = "1.0.1"
 id = "mx.tocadisco.vega"
 icon = "@image/app_icon.png"
 

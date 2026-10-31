@@ -19,6 +19,14 @@ const RETRY_MAX_MS = 60000;
 
 const withAppParam = (url: string) => url + (url.indexOf('?') === -1 ? '?' : '&') + APP_PARAM;
 
+/** ¿La dirección es la de la página /tv (con o sin ?app=vega), y no un recurso de adentro? */
+const isTvPage = (url: string) => {
+  const base = url.split('#')[0].split('?')[0].replace(/\/+$/, '');
+  const tv = TV_URL.split('?')[0].replace(/\/+$/, '');
+  // Sin dirección no sabemos qué falló: mejor no recargar.
+  return base !== '' && (base === tv || base.endsWith('/tv'));
+};
+
 export const App = () => {
   const webRef = useRef<any>(null);
   const [offline, setOffline] = useState(false);
@@ -57,10 +65,27 @@ export const App = () => {
     timer.current = setTimeout(() => setAttempt((n) => n + 1), wait);
   }, []);
 
+  // El WebView de Vega avisa onError también cuando falla un recurso de adentro (una imagen,
+  // algo del reproductor de YouTube), y no dice si fue la página principal. Si recargáramos
+  // por eso, la música se corta cada rato. Una vez que /tv cargó, la página se reconecta sola;
+  // la app solo reintenta si lo que falló es la página misma.
+  const pageLoaded = useRef(false);
+
   const loaded = useCallback(() => {
+    pageLoaded.current = true;
     retryMs.current = RETRY_MIN_MS;
     setOffline(false);
   }, []);
+
+  const failed = useCallback(
+    (event: any) => {
+      const url: string = (event && event.nativeEvent && event.nativeEvent.url) || '';
+      if (pageLoaded.current && !isTvPage(url)) return;
+      pageLoaded.current = false;
+      retryLater();
+    },
+    [retryLater],
+  );
 
   return (
     <View style={styles.root}>
@@ -78,7 +103,7 @@ export const App = () => {
         thirdPartyCookiesEnabled={true}
         allowSystemKeyEvents={true}
         onLoad={loaded}
-        onError={retryLater}
+        onError={failed}
       />
       {offline ? (
         <View style={styles.notice}>
